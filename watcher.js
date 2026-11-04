@@ -9,8 +9,14 @@
   const question = d => [...d.querySelectorAll('input[type=radio],input[type=checkbox]')].some(shown) ||
     [...d.querySelectorAll('button,[role=button],a,div,span')].some(el => el.children.length === 0 && /^\s*(submit|check answer|check)\s*$/i.test(el.textContent || '') && shown(el));
   let pausedSince = 0, alerted = false, flash, note;
+  // push to the tablet/phone through ntfy (subscribe to this topic in the ntfy app)
+  const push = why => {
+    const url = 'https://ntfy.sh/spom-a414deed5f/publish?' + new URLSearchParams({ title: label + ' checkpoint', message: why, priority: 'high', tags: 'warning' });
+    fetch(url, { mode: 'no-cors' }).catch(() => { new Image().src = url; });
+  };
   const alertNow = why => {
     alerted = true;
+    try { push(why); } catch (e) {}
     try {
       note = new Notification(label + ': checkpoint', { body: why + ' (click to open)', requireInteraction: true, silent: true });
       note.onclick = () => { window.focus(); note.close(); };
