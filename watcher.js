@@ -1,6 +1,14 @@
 (() => {
   if (window.__cpWatch) { alert('SPOM watch is already on in this tab'); return; }
   window.__cpWatch = true;
+  // If the LMS page isn't allowed to call ntfy itself, pushes go out through a small relay
+  // window instead (it has to be opened now, while the bookmark click still counts as a click).
+  let relay = null, direct = false;
+  try {
+    relay = window.open('about:blank', 'spomrelay' + Date.now(), 'width=380,height=170');
+    if (relay) relay.document.write('<title>SPOM relay</title><body style="font:14px sans-serif;padding:12px">SPOM watch relay. Minimise this window and leave it open; checkpoint pings to your tablet go through it.</body>');
+  } catch (e) {}
+  fetch('https://ntfy.sh/v1/health', { mode: 'no-cors' }).then(() => { direct = true; try { relay && relay.close(); } catch (e) {} relay = null; }).catch(() => {});
   const title = document.title;
   const label = (prompt('Name for this window (e.g. Set C)', '') || 'SPOM').slice(0, 20);
   try { Notification.requestPermission(); } catch (e) {}
@@ -12,7 +20,8 @@
   // push to the tablet/phone through ntfy (subscribe to this topic in the ntfy app)
   const push = why => {
     const url = 'https://ntfy.sh/spom-a414deed5f/publish?' + new URLSearchParams({ title: label + ' checkpoint', message: why, priority: 'high', tags: 'warning' });
-    fetch(url, { mode: 'no-cors' }).catch(() => { new Image().src = url; });
+    const viaRelay = () => { if (relay && !relay.closed) relay.location.href = url; else new Image().src = url; };
+    if (direct) fetch(url, { mode: 'no-cors' }).catch(viaRelay); else viaRelay();
   };
   const alertNow = why => {
     alerted = true;
