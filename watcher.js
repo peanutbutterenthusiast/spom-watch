@@ -1,0 +1,34 @@
+(() => {
+  if (window.__cpWatch) { alert('SPOM watch is already on in this tab'); return; }
+  window.__cpWatch = true;
+  const title = document.title;
+  const label = (prompt('Name for this window (e.g. Set C)', '') || 'SPOM').slice(0, 20);
+  try { Notification.requestPermission(); } catch (e) {}
+  const docs = (d, out = []) => { out.push(d); for (const f of d.querySelectorAll('iframe,frame')) { try { if (f.contentDocument) docs(f.contentDocument, out); } catch (e) {} } return out; };
+  const shown = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+  const question = d => [...d.querySelectorAll('input[type=radio],input[type=checkbox]')].some(shown) ||
+    [...d.querySelectorAll('button,[role=button],a,div,span')].some(el => el.children.length === 0 && /^\s*(submit|check answer|check)\s*$/i.test(el.textContent || '') && shown(el));
+  let pausedSince = 0, alerted = false, flash, note;
+  const alertNow = why => {
+    alerted = true;
+    try {
+      note = new Notification(label + ': checkpoint', { body: why + ' (click to open)', requireInteraction: true, silent: true });
+      note.onclick = () => { window.focus(); note.close(); };
+    } catch (e) {}
+    let on = false; flash = setInterval(() => { document.title = (on = !on) ? '⚠ ' + label + ' CHECKPOINT' : title; }, 700);
+  };
+  const reset = () => { alerted = false; pausedSince = 0; clearInterval(flash); document.title = title; try { note && note.close(); } catch (e) {} };
+  setInterval(() => {
+    const all = docs(document);
+    const vids = all.flatMap(d => [...d.querySelectorAll('video,audio')]);
+    const playing = vids.some(v => !v.paused && !v.ended);
+    const stuck = vids.some(v => v.paused && !v.ended && v.currentTime > 1);
+    const q = all.some(question);
+    if (playing && !q) { if (alerted) reset(); pausedSince = 0; return; }
+    if (alerted) return;
+    if (q) return alertNow('A question is on screen');
+    if (stuck) { pausedSince = pausedSince || Date.now(); if (Date.now() - pausedSince > 4000) alertNow('The lecture has paused'); }
+  }, 1500);
+  document.title = '✓ ' + label + ' watching';
+  setTimeout(() => { if (!alerted) document.title = title; }, 3000);
+})();
