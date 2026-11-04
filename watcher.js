@@ -34,7 +34,7 @@
     if (playing && !q) { if (alerted) reset(); pausedSince = 0; return; }
     if (alerted) return;
     if (q) return alertNow('A question is on screen');
-    if (stuck) { pausedSince = pausedSince || Date.now(); if (Date.now() - pausedSince > 20000) alertNow('Paused for 20s, probably a checkpoint'); }
+    if (stuck) { pausedSince = pausedSince || Date.now(); if (Date.now() - pausedSince > 1000) alertNow('The lecture has paused'); }
   }, 1500);
   document.title = '✓ ' + label + ' watching';
   setTimeout(() => { if (!alerted) document.title = title; }, 3000);
