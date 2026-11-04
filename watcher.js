@@ -6,6 +6,18 @@
   const label = (prompt('Name for this window', browser) || browser).slice(0, 20);
   try { Notification.requestPermission(); } catch (e) {}
   const docs = (d, out = []) => { out.push(d); for (const f of d.querySelectorAll('iframe,frame')) { try { if (f.contentDocument) docs(f.contentDocument, out); } catch (e) {} } return out; };
+  // temporary diagnostics: a low-priority ntfy message describing what the watcher can see
+  const describe = () => {
+    let frames = 0, blocked = 0;
+    const walk = d => { for (const f of d.querySelectorAll('iframe,frame')) { frames++; try { if (f.contentDocument) walk(f.contentDocument); else blocked++; } catch (e) { blocked++; } } };
+    walk(document);
+    const all = docs(document);
+    const media = all.flatMap(d => [...d.querySelectorAll('video,audio')]).map(v => v.tagName.toLowerCase() + (v.paused ? ':paused' : ':playing') + (v.ended ? ':ended' : '') + '@' + Math.round(v.currentTime) + '/' + Math.round(v.duration || 0));
+    const qs = all.flatMap(d => [...d.querySelectorAll('input[type=radio],input[type=checkbox]')].filter(shown).map(e => e.type + ':' + (e.id || e.name || '').slice(0, 15)))
+      .concat(all.flatMap(d => [...d.querySelectorAll('button,[role=button],a,div,span')].filter(el => el.children.length === 0 && /^\s*(submit|check answer|check)\s*$/i.test(el.textContent || '') && shown(el)).map(e => e.tagName + ':' + e.textContent.trim())));
+    return 'frames ' + frames + ' (blocked ' + blocked + ') | media [' + media.join(', ') + '] | q [' + qs.slice(0, 4).join(', ') + ']';
+  };
+  const debug = what => { const url = 'https://ntfy.sh/spom-a414deed5f/publish?' + new URLSearchParams({ title: 'debug ' + label + ' ' + what, message: describe(), priority: 'min' }); fetch(url, { mode: 'no-cors' }).catch(() => { new Image().src = url; }); };
   const shown = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
   const question = d => [...d.querySelectorAll('input[type=radio],input[type=checkbox]')].some(shown) ||
     [...d.querySelectorAll('button,[role=button],a,div,span')].some(el => el.children.length === 0 && /^\s*(submit|check answer|check)\s*$/i.test(el.textContent || '') && shown(el));
@@ -25,10 +37,14 @@
     let on = false; flash = setInterval(() => { document.title = (on = !on) ? '⚠ ' + label + ' CHECKPOINT' : title; }, 700);
   };
   const reset = () => { alerted = false; pausedSince = 0; clearInterval(flash); document.title = title; try { note && note.close(); } catch (e) {} };
+  let wasPlaying = null;
+  setTimeout(() => debug('start'), 2500);
   setInterval(() => {
     const all = docs(document);
     const vids = all.flatMap(d => [...d.querySelectorAll('video,audio')]);
     const playing = vids.some(v => !v.paused && !v.ended);
+    if (wasPlaying !== null && playing !== wasPlaying) debug(playing ? 'now playing' : 'now stopped');
+    wasPlaying = playing;
     const stuck = vids.some(v => v.paused && !v.ended && v.currentTime > 1 && !(v.duration - v.currentTime < 2));
     // While the lecture plays nothing is a checkpoint (some LMS pages always have a
     // question-looking element on them, which used to keep this stuck in "alerted").
