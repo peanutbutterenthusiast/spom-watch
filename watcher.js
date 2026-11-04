@@ -30,11 +30,13 @@
     const vids = all.flatMap(d => [...d.querySelectorAll('video,audio')]);
     const playing = vids.some(v => !v.paused && !v.ended);
     const stuck = vids.some(v => v.paused && !v.ended && v.currentTime > 1 && !(v.duration - v.currentTime < 2));
-    const q = all.some(question);
-    if (playing && !q) { if (alerted) reset(); pausedSince = 0; return; }
+    // While the lecture plays nothing is a checkpoint (some LMS pages always have a
+    // question-looking element on them, which used to keep this stuck in "alerted").
+    if (playing) { if (alerted) reset(); pausedSince = 0; return; }
     if (alerted) return;
-    if (q) return alertNow('A question is on screen');
-    if (stuck) { pausedSince = pausedSince || Date.now(); if (Date.now() - pausedSince > 1000) alertNow('The lecture has paused'); }
+    const q = all.some(question);
+    if (stuck || q) { pausedSince = pausedSince || Date.now(); if (Date.now() - pausedSince > 1000) alertNow(q ? 'Lecture stopped, likely a question' : 'Lecture stopped'); }
+    else pausedSince = 0;
   }, 1500);
   document.title = '✓ ' + label + ' watching';
   setTimeout(() => { if (!alerted) document.title = title; }, 3000);
