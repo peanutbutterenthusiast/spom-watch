@@ -6,19 +6,23 @@ Click the notification to jump to that window, answer, and carry on. Nothing to 
 
 ## Set up (once per browser)
 
-This bookmark loads the latest `watcher.js` from GitHub Pages each time you click it, so updates need no re-pasting. If the LMS ever blocks it, use the full code in [`bookmarklet.txt`](bookmarklet.txt) instead.
+This bookmark loads the latest `watcher.js` each time you click it, so updates need no re-pasting. It loads through jsDelivr (`cdn.jsdelivr.net`), one of the few outside sites the LMS lets pages load scripts from; the LMS blocks GitHub Pages. If it still won't load, use the full code in [`bookmarklet.txt`](bookmarklet.txt) instead.
+
+If you made the bookmark before 5 Nov 2026, replace its URL with the line below.
 
 1. Copy the line below with the copy button on the right of the box.
 2. Press **Ctrl + Shift + B** to show the bookmarks bar.
 3. Right-click the bar → **Add page** (Chrome/Brave/Opera) or **Add favorite** (Edge). Name it `SPOM watch`, paste the line as the **URL**, save.
 
 ```
-javascript:(()=>{const s=document.createElement('script');s.src='https://peanutbutterenthusiast.github.io/spom-watch/watcher.js?v='+Date.now();s.onerror=()=>alert('SPOM watch could not load. The LMS may block outside scripts.');document.body.appendChild(s)})()
+javascript:(()=>{const add=(u,f)=>{const s=document.createElement('script');s.src=u;s.onerror=f;document.body.appendChild(s)};add('https://cdn.jsdelivr.net/gh/peanutbutterenthusiast/spom-watch@main/watcher.js?v='+Date.now(),()=>add('https://peanutbutterenthusiast.github.io/spom-watch/watcher.js?v='+Date.now(),()=>alert('SPOM watch could not load. Use the full code in bookmarklet.txt instead.')))})()
 ```
 
 ## Get alerts on your tablet/phone
 
 Install the **ntfy** app, tap **+**, and subscribe to the topic `spom-a414deed5f`. Every checkpoint is pushed there with the window's name.
+
+Note: the LMS (learning.icai.org) blocks pages from contacting ntfy.sh, so phone alerts may not arrive from LMS pages. The desktop notification and the flashing tab title still work.
 
 ## Use
 
